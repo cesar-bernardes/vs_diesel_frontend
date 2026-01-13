@@ -1,4 +1,4 @@
-import { Car, Wrench, User, Calendar } from 'lucide-react';
+import { Car, User } from 'lucide-react';
 
 interface ImpressoOSProps {
   os: any;

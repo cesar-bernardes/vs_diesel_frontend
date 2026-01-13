@@ -15,7 +15,7 @@ interface Despesa {
 
 export function Despesas() {
   const [despesas, setDespesas] = useState<Despesa[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Removi o loading que não estava sendo usado para evitar erro no build
   const [modalAberto, setModalAberto] = useState(false);
   
   // FILTROS
@@ -43,8 +43,6 @@ export function Despesas() {
       setDespesas(response.data);
     } catch (error) {
       console.error("Erro ao buscar despesas", error);
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -72,10 +70,8 @@ export function Despesas() {
 
   // --- LÓGICA DINÂMICA ---
 
-  // Lista completa de departamentos cadastrados (independente do mês)
   const departamentosExistentes = Array.from(new Set(despesas.map(d => d.departamento))).filter(Boolean).sort();
 
-  // Filtra as despesas para a Tabela e Totais
   const despesasFiltradas = despesas.filter(d => {
     const matchDepto = filtroDepto === 'Todos' || d.departamento === filtroDepto;
     const matchData = d.data_despesa.startsWith(filtroData); 
@@ -84,17 +80,12 @@ export function Despesas() {
 
   const totalGeral = despesasFiltradas.reduce((acc, d) => acc + Number(d.valor), 0);
 
-  // Agrupa os valores por departamento (apenas do mês selecionado)
   const gastosPorDepto = despesasFiltradas.reduce((acc, curr) => {
     acc[curr.departamento] = (acc[curr.departamento] || 0) + Number(curr.valor);
     return acc;
   }, {} as Record<string, number>);
 
-  // Encontra o maior valor para a escala do gráfico
   const maiorGasto = Math.max(...Object.values(gastosPorDepto), 1);
-
-  // CORREÇÃO: Se 'Todos', usamos a lista completa de departamentos existentes.
-  // Antes estava mostrando apenas 'Object.keys(gastosPorDepto)', o que escondia os zerados.
   const deptosGrafico = filtroDepto === 'Todos' ? departamentosExistentes : [filtroDepto];
 
   return (
