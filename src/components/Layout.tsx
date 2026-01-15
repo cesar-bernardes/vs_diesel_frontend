@@ -7,7 +7,7 @@ export function Layout() {
       {/* Sidebar / Menu Lateral */}
       <aside className="w-64 bg-slate-900 text-white p-6 shadow-2xl flex flex-col">
         <h1 className="text-2xl font-bold mb-8 text-yellow-500 tracking-wider text-center border-b border-slate-800 pb-4">
-          VS DIESEL
+          VR DIESEL
         </h1>
         
         <nav className="space-y-2 flex-1">
