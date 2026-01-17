@@ -1,4 +1,5 @@
 import { Car, User } from 'lucide-react';
+import { formatMoney } from '../utils/format'; // <--- Importação
 
 interface ImpressoOSProps {
   os: any;
@@ -66,8 +67,8 @@ export function ImpressoOS({ os, itens }: ImpressoOSProps) {
                     <td className="p-2 border border-gray-300 text-xs">{item.tipo}</td>
                     <td className="p-2 border border-gray-300">{item.descricao}</td>
                     <td className="p-2 border border-gray-300 text-center">{item.quantidade}</td>
-                    <td className="p-2 border border-gray-300 text-right">R$ {Number(item.preco_un).toFixed(2)}</td>
-                    <td className="p-2 border border-gray-300 text-right font-bold">R$ {Number(item.subtotal).toFixed(2)}</td>
+                    <td className="p-2 border border-gray-300 text-right">{formatMoney(item.preco_un)}</td>
+                    <td className="p-2 border border-gray-300 text-right font-bold">{formatMoney(item.subtotal)}</td>
                 </tr>
             ))}
         </tbody>
@@ -78,15 +79,15 @@ export function ImpressoOS({ os, itens }: ImpressoOSProps) {
         <div className="w-64 space-y-2">
             <div className="flex justify-between text-sm">
                 <span>Total Peças:</span>
-                <span>R$ {totalPecas.toFixed(2)}</span>
+                <span>{formatMoney(totalPecas)}</span>
             </div>
             <div className="flex justify-between text-sm">
                 <span>Total Serviços:</span>
-                <span>R$ {totalServicos.toFixed(2)}</span>
+                <span>{formatMoney(totalServicos)}</span>
             </div>
             <div className="flex justify-between text-xl font-bold border-t-2 border-black pt-2">
                 <span>TOTAL GERAL:</span>
-                <span>R$ {Number(os.total).toFixed(2)}</span>
+                <span>{formatMoney(os.total)}</span>
             </div>
         </div>
       </div>

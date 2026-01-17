@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../services/api';
+import { formatMoney } from '../../utils/format'; // <--- Importação
 import { PlusCircle, UserPlus, CheckCircle, Clock, AlertCircle, Calendar, DollarSign } from 'lucide-react';
 
 interface Cliente {
@@ -152,7 +153,7 @@ export function Faturamento() {
               </div>
               {totalAtrasadoGeral > 0 && (
                   <div className="ml-auto text-xs font-bold text-red-600 bg-red-100 px-3 py-1 rounded-full flex items-center gap-1 animate-pulse">
-                      <AlertCircle size={14} /> Total Geral em Atraso: R$ {totalAtrasadoGeral.toFixed(2)}
+                      <AlertCircle size={14} /> Total Geral em Atraso: {formatMoney(totalAtrasadoGeral)}
                   </div>
               )}
           </div>
@@ -160,17 +161,17 @@ export function Faturamento() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-white p-5 rounded-lg shadow-sm border-l-4 border-blue-500">
                 <p className="text-gray-500 text-sm mb-1">A Receber ({filtroData})</p>
-                <p className="text-3xl font-bold text-blue-600">R$ {aReceberMes.toFixed(2)}</p>
+                <p className="text-3xl font-bold text-blue-600">{formatMoney(aReceberMes)}</p>
                 <p className="text-xs text-gray-400 mt-1">Pendente neste mês</p>
             </div>
             <div className="bg-white p-5 rounded-lg shadow-sm border-l-4 border-green-500">
                 <p className="text-gray-500 text-sm mb-1">Recebido ({filtroData})</p>
-                <p className="text-3xl font-bold text-green-600">R$ {recebidoMes.toFixed(2)}</p>
+                <p className="text-3xl font-bold text-green-600">{formatMoney(recebidoMes)}</p>
                 <p className="text-xs text-gray-400 mt-1">Baixado neste mês</p>
             </div>
             <div className="bg-white p-5 rounded-lg shadow-sm border-l-4 border-slate-400">
                 <p className="text-gray-500 text-sm mb-1">Total Previsto ({filtroData})</p>
-                <p className="text-3xl font-bold text-slate-700">R$ {totalPrevistoMes.toFixed(2)}</p>
+                <p className="text-3xl font-bold text-slate-700">{formatMoney(totalPrevistoMes)}</p>
                 <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
                     <div className="bg-green-500 h-1.5 rounded-full" style={{ width: `${(recebidoMes / (totalPrevistoMes || 1)) * 100}%` }}></div>
                 </div>
@@ -213,7 +214,7 @@ export function Faturamento() {
                   </td>
                   <td className="p-4 text-gray-500">{f.numero_documento}</td>
                   <td className="p-4">{f.numero_parcela}/{f.total_parcelas}</td>
-                  <td className="p-4 font-bold text-slate-700">R$ {Number(f.valor_parcela).toFixed(2)}</td>
+                  <td className="p-4 font-bold text-slate-700">{formatMoney(f.valor_parcela)}</td>
                   
                   <td className="p-4">
                       <span className={`px-2 py-1 rounded text-xs font-bold flex items-center gap-1 w-fit ${

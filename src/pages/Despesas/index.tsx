@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../services/api';
+import { formatMoney } from '../../utils/format'; // <--- Importação
 import { PlusCircle, Calendar, BarChart3 } from 'lucide-react';
 
 interface Despesa {
@@ -15,7 +16,6 @@ interface Despesa {
 
 export function Despesas() {
   const [despesas, setDespesas] = useState<Despesa[]>([]);
-  // Removi o loading que não estava sendo usado para evitar erro no build
   const [modalAberto, setModalAberto] = useState(false);
   
   // FILTROS
@@ -120,7 +120,7 @@ export function Despesas() {
             
             <div className="pt-4 border-t">
                 <p className="text-gray-500">Total Filtrado</p>
-                <p className="text-4xl font-bold text-slate-800">R$ {totalGeral.toFixed(2)}</p>
+                <p className="text-4xl font-bold text-slate-800">{formatMoney(totalGeral)}</p>
             </div>
         </div>
 
@@ -141,7 +141,7 @@ export function Despesas() {
                         return (
                             <div key={depto} className="flex flex-col items-center justify-end h-full group w-16 flex-shrink-0 relative">
                                 <div className="mb-1 text-xs font-bold text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity absolute -top-6">
-                                    R$ {valor.toFixed(0)}
+                                    {formatMoney(valor)}
                                 </div>
                                 <div 
                                     className={`w-full rounded-t relative transition-all duration-500 ${valor > 0 ? 'bg-red-200 hover:bg-red-300' : 'bg-gray-100'}`}
@@ -209,7 +209,7 @@ export function Despesas() {
                     <td className="p-4 font-medium text-gray-800">{d.fornecedor}</td>
                     <td className="p-4 text-gray-500">{d.numero_nf}</td>
                     <td className="p-4"><span className="bg-gray-100 px-2 py-1 rounded text-xs">{d.departamento}</span></td>
-                    <td className="p-4 font-bold text-red-600 whitespace-nowrap">R$ {Number(d.valor).toFixed(2)}</td>
+                    <td className="p-4 font-bold text-red-600 whitespace-nowrap">{formatMoney(d.valor)}</td>
                     <td className="p-4 text-gray-400 text-xs truncate max-w-[150px]">{d.observacoes}</td>
                 </tr>
                 ))}

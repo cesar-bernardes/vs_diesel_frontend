@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../services/api';
+import { formatMoney } from '../../utils/format'; // <--- Importação do utilitário
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -45,7 +46,6 @@ export function Home() {
   // --- CÁLCULOS DO MÊS SELECIONADO ---
 
   // 1. Receita Real (Só o que está PAGO neste mês)
-  // Nota: Consideramos a data de vencimento/pagamento dentro do mês selecionado
   const entradasMes = faturamentos
     .filter(f => f.status === 'PAGO' && f.data_vencimento.startsWith(filtroMes))
     .reduce((acc, f) => acc + Number(f.valor_parcela), 0);
@@ -108,9 +108,10 @@ export function Home() {
                     <span>Recebido (Real)</span>
                 </div>
                 <div>
-                    <p className="text-4xl font-extrabold text-green-700">R$ {entradasMes.toFixed(2)}</p>
+                    {/* Alterado para usar formatMoney */}
+                    <p className="text-4xl font-extrabold text-green-700">{formatMoney(entradasMes)}</p>
                     <p className="text-sm text-green-600 mt-1">
-                        + R$ {aReceberMes.toFixed(2)} pendente no mês
+                        + {formatMoney(aReceberMes)} pendente no mês
                     </p>
                 </div>
             </div>
@@ -127,7 +128,8 @@ export function Home() {
                     <span>Gastos / Despesas</span>
                 </div>
                 <div>
-                    <p className="text-4xl font-extrabold text-red-700">R$ {saidasMes.toFixed(2)}</p>
+                     {/* Alterado para usar formatMoney */}
+                    <p className="text-4xl font-extrabold text-red-700">{formatMoney(saidasMes)}</p>
                     <p className="text-sm text-red-600 mt-1">Custos operacionais e compras</p>
                 </div>
             </div>
@@ -145,7 +147,8 @@ export function Home() {
                     <span>Saldo do Período</span>
                 </div>
                 <div>
-                    <p className="text-5xl font-extrabold tracking-tight">R$ {saldo.toFixed(2)}</p>
+                     {/* Alterado para usar formatMoney */}
+                    <p className="text-5xl font-extrabold tracking-tight">{formatMoney(saldo)}</p>
                     <p className="text-sm opacity-80 mt-2">
                         {saldo >= 0 ? 'Lucro Operacional 🎉' : 'Atenção: Prejuízo no período ⚠️'}
                     </p>
@@ -173,7 +176,8 @@ export function Home() {
           <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-orange-500 flex items-center justify-between">
               <div>
                   <p className="text-gray-500 font-medium">A Receber Hoje ({new Date().toLocaleDateString('pt-BR')})</p>
-                  <p className="text-3xl font-bold text-orange-600">R$ {aReceberHoje.toFixed(2)}</p>
+                   {/* Alterado para usar formatMoney */}
+                  <p className="text-3xl font-bold text-orange-600">{formatMoney(aReceberHoje)}</p>
               </div>
               <div className="bg-orange-100 p-3 rounded-full text-orange-600">
                   <AlertCircle size={32} />

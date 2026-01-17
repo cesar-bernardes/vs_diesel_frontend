@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../services/api';
-import { PlusCircle, Wrench, Car, User, Printer } from 'lucide-react'; // <--- Importei Printer
-import { ImpressoOS } from '../../components/ImpressoOS'; // <--- Importei o Layout
+import { formatMoney } from '../../utils/format';
+import { PlusCircle, Wrench, Car, User, Printer, Trash2 } from 'lucide-react'; // <--- Adicionado Trash2
+import { ImpressoOS } from '../../components/ImpressoOS';
 
 export function Servicos() {
   // ESTADOS
@@ -82,11 +83,29 @@ export function Servicos() {
             preco: novoItem.preco
         });
         
+        // Atualiza a lista de itens e a lista de OS (para atualizar o total no menu lateral)
         const resItens = await api.get(`/os/${osSelecionada.id}/itens`);
         setItensOS(resItens.data);
         carregarOS();
         setNovoItem({ tipo: 'PECA', produtoId: '', descricao: '', quantidade: 1, preco: 0 });
     } catch (error) { alert('Erro ao adicionar item'); }
+  }
+
+  // --- NOVA FUNÇÃO: REMOVER ITEM ---
+  async function handleRemoverItem(itemId: number) {
+    if (!confirm('Deseja remover este item da OS? Se for peça, ela voltará ao estoque.')) return;
+
+    try {
+        await api.delete(`/os/itens/${itemId}`);
+        
+        // Atualiza a lista
+        const resItens = await api.get(`/os/${osSelecionada.id}/itens`);
+        setItensOS(resItens.data);
+        carregarOS(); // Atualiza total geral
+    } catch (error) {
+        alert('Erro ao remover item.');
+        console.error(error);
+    }
   }
 
   async function handleFinalizarOS() {
@@ -108,7 +127,6 @@ export function Servicos() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-100px)] gap-4">
-      {/* Componente de Impressão Invisível (só aparece na hora de imprimir) */}
       <ImpressoOS os={osSelecionada} itens={itensOS} />
 
       {/* HEADER */}
@@ -139,7 +157,7 @@ export function Servicos() {
                         </div>
                         <p className="text-sm text-gray-600 font-medium">{os.clientes_empresas?.nome_razao_social}</p>
                         <p className="text-xs text-gray-400 mt-1">{os.veiculo}</p>
-                        <p className="text-right font-bold text-blue-600 mt-2">R$ {Number(os.total).toFixed(2)}</p>
+                        <p className="text-right font-bold text-blue-600 mt-2">{formatMoney(os.total)}</p>
                     </div>
                 ))}
             </div>
@@ -162,10 +180,9 @@ export function Servicos() {
                         </div>
                         <div className="text-right flex flex-col items-end gap-2">
                              <div className="text-sm text-gray-500">Total OS</div>
-                             <div className="text-4xl font-bold text-slate-800">R$ {calcularTotal().toFixed(2)}</div>
+                             <div className="text-4xl font-bold text-slate-800">{formatMoney(calcularTotal())}</div>
                              
                              <div className="flex gap-2 mt-2">
-                                {/* BOTÃO DE IMPRIMIR */}
                                 <button 
                                     onClick={handleImprimir}
                                     className="bg-slate-700 text-white px-4 py-2 rounded text-sm hover:bg-slate-800 flex items-center gap-2"
@@ -192,11 +209,12 @@ export function Servicos() {
                                     <th className="p-3 text-center">Qtd</th>
                                     <th className="p-3 text-right">Preço Un.</th>
                                     <th className="p-3 text-right">Subtotal</th>
+                                    {osSelecionada.status === 'ABERTA' && <th className="p-3 text-center">Ação</th>}
                                 </tr>
                             </thead>
                             <tbody className="divide-y">
                                 {itensOS.map(item => (
-                                    <tr key={item.id}>
+                                    <tr key={item.id} className="hover:bg-gray-50">
                                         <td className="p-3">
                                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${item.tipo === 'PECA' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
                                                 {item.tipo}
@@ -204,8 +222,21 @@ export function Servicos() {
                                         </td>
                                         <td className="p-3 font-medium">{item.descricao}</td>
                                         <td className="p-3 text-center">{item.quantidade}</td>
-                                        <td className="p-3 text-right">R$ {Number(item.preco_un).toFixed(2)}</td>
-                                        <td className="p-3 text-right font-bold">R$ {Number(item.subtotal).toFixed(2)}</td>
+                                        <td className="p-3 text-right">{formatMoney(item.preco_un)}</td>
+                                        <td className="p-3 text-right font-bold">{formatMoney(item.subtotal)}</td>
+                                        
+                                        {/* Botão de Excluir Item */}
+                                        {osSelecionada.status === 'ABERTA' && (
+                                            <td className="p-3 text-center">
+                                                <button 
+                                                    onClick={() => handleRemoverItem(item.id)}
+                                                    className="text-gray-400 hover:text-red-600 p-1 hover:bg-red-50 rounded"
+                                                    title="Remover e estornar estoque"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </td>
+                                        )}
                                     </tr>
                                 ))}
                             </tbody>
