@@ -1,100 +1,87 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../services/api';
-import { formatMoney } from '../../utils/format'; // <--- Importação do utilitário
+import { formatMoney } from '../../utils/format'; 
 import { 
   TrendingUp, 
   TrendingDown, 
   Wallet, 
   AlertCircle, 
+  AlertTriangle,
+  Clock,
   Wrench, 
   Calendar, 
   CheckCircle2 
+  // Removi o 'Package' daqui pois não estava sendo usado
 } from 'lucide-react';
+
+interface DashboardResumo {
+  mes: string;
+  recebidoMes: number;
+  pendenteMes: number;
+  despesasOperacionaisMes: number;
+  comprasEstoqueMes: number;
+  lucroReal: number;
+  osAbertas: number;
+  aReceberHoje: number;
+  aReceberVencido: number;
+  aVencerProximos7Dias: number;
+  osAbertasAtrasadas: number;
+}
 
 export function Home() {
   const [loading, setLoading] = useState(true);
-  
-  // Dados brutos
-  const [faturamentos, setFaturamentos] = useState<any[]>([]);
-  const [despesas, setDespesas] = useState<any[]>([]);
-  const [listaOS, setListaOS] = useState<any[]>([]);
+  const [erro, setErro] = useState<string | null>(null);
+  const [resumo, setResumo] = useState<DashboardResumo | null>(null);
 
   // Filtro de Mês (Padrão: Mês Atual)
   const [filtroMes, setFiltroMes] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
 
+  const carregarResumo = useCallback(() => {
+    setLoading(true);
+    setErro(null);
+    api.get(`/dashboard/resumo?mes=${filtroMes}`)
+      .then((res) => setResumo(res.data))
+      .catch(() => setErro('Não foi possível carregar a Visão Geral.'))
+      .finally(() => setLoading(false));
+  }, [filtroMes]);
+
   useEffect(() => {
-    carregarTudo();
-  }, []);
+    Promise.resolve().then(() => carregarResumo());
+  }, [carregarResumo]);
 
-  async function carregarTudo() {
-    try {
-      const [resFat, resDesp, resOS] = await Promise.all([
-        api.get('/faturamentos'),
-        api.get('/despesas'),
-        api.get('/os')
-      ]);
-      setFaturamentos(resFat.data);
-      setDespesas(resDesp.data);
-      setListaOS(resOS.data);
-    } catch (error) {
-      console.error("Erro ao carregar dashboard", error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // --- CÁLCULOS DO MÊS SELECIONADO ---
-
-  // 1. Receita Real (Só o que está PAGO neste mês)
-  const entradasMes = faturamentos
-    .filter(f => f.status === 'PAGO' && f.data_vencimento.startsWith(filtroMes))
-    .reduce((acc, f) => acc + Number(f.valor_parcela), 0);
-
-  // 2. Despesas do Mês
-  const saidasMes = despesas
-    .filter(d => d.data_despesa.startsWith(filtroMes))
-    .reduce((acc, d) => acc + Number(d.valor), 0);
-
-  // 3. Saldo (Lucro/Prejuízo Operacional)
-  const saldo = entradasMes - saidasMes;
-
-  // --- OUTROS INDICADORES (EM TEMPO REAL) ---
-  
-  const osAbertas = listaOS.filter(os => os.status === 'ABERTA').length;
-  
-  const hoje = new Date().toISOString().split('T')[0];
-  const aReceberHoje = faturamentos
-    .filter(f => f.data_vencimento.startsWith(hoje) && f.status === 'PENDENTE')
-    .reduce((acc, f) => acc + Number(f.valor_parcela), 0);
-
-  const aReceberMes = faturamentos
-    .filter(f => f.data_vencimento.startsWith(filtroMes) && f.status !== 'PAGO')
-    .reduce((acc, f) => acc + Number(f.valor_parcela), 0);
-
-  if (loading) return <div className="p-8 text-gray-500">Carregando indicadores...</div>;
+  if (loading && !resumo && !erro) return <div className="p-8 text-gray-500">Carregando indicadores...</div>;
 
   return (
     <div className="space-y-8">
       
       {/* CABEÇALHO E FILTRO */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
         <div>
             <h2 className="text-3xl font-bold text-slate-800">Visão Geral</h2>
-            <p className="text-gray-500">Acompanhe a saúde financeira da oficina.</p>
+            <p className="text-gray-500">Fluxo de caixa real ({new Date(filtroMes + '-01').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })})</p>
         </div>
-        <div className="bg-white p-2 rounded-lg shadow-sm border flex items-center gap-2">
+        <div className="bg-white p-2 rounded-lg shadow-sm border flex items-center gap-2 w-full sm:w-auto">
             <Calendar size={20} className="text-slate-500" />
             <span className="font-bold text-slate-700 text-sm">Período:</span>
             <input 
                 type="month" 
-                className="outline-none font-bold text-slate-800 bg-transparent cursor-pointer"
+                className="outline-none font-bold text-slate-800 bg-transparent cursor-pointer min-w-0"
                 value={filtroMes}
                 onChange={e => setFiltroMes(e.target.value)}
             />
         </div>
       </div>
 
-      {/* --- BIG NUMBERS (CARDS PRINCIPAIS) --- */}
+      {erro && (
+        <div className="bg-white border border-red-200 text-red-700 p-4 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="font-bold">{erro}</div>
+          <button onClick={carregarResumo} className="px-4 py-2 rounded bg-red-600 text-white font-bold hover:bg-red-700">
+            Tentar novamente
+          </button>
+        </div>
+      )}
+
+      {/* --- BIG NUMBERS --- */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
         {/* CARD 1: RECEITA */}
@@ -108,16 +95,15 @@ export function Home() {
                     <span>Recebido (Real)</span>
                 </div>
                 <div>
-                    {/* Alterado para usar formatMoney */}
-                    <p className="text-4xl font-extrabold text-green-700">{formatMoney(entradasMes)}</p>
+                    <p className="text-3xl sm:text-4xl font-extrabold text-green-700 break-words">{formatMoney(resumo?.recebidoMes || 0)}</p>
                     <p className="text-sm text-green-600 mt-1">
-                        + {formatMoney(aReceberMes)} pendente no mês
+                        + {formatMoney(resumo?.pendenteMes || 0)} pendente no mês
                     </p>
                 </div>
             </div>
         </div>
 
-        {/* CARD 2: DESPESAS */}
+        {/* CARD 2: SAÍDAS TOTAIS (DESPESAS + ESTOQUE) */}
         <div className="bg-gradient-to-br from-red-50 to-red-100 p-6 rounded-2xl shadow-sm border border-red-200 relative overflow-hidden group">
             <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                 <TrendingDown size={100} className="text-red-600" />
@@ -125,32 +111,33 @@ export function Home() {
             <div className="flex flex-col h-full justify-between relative z-10">
                 <div className="flex items-center gap-2 text-red-700 font-bold mb-2">
                     <div className="bg-red-200 p-2 rounded-full"><TrendingDown size={20}/></div>
-                    <span>Gastos / Despesas</span>
+                    <span>Total de Saídas</span>
                 </div>
                 <div>
-                     {/* Alterado para usar formatMoney */}
-                    <p className="text-4xl font-extrabold text-red-700">{formatMoney(saidasMes)}</p>
-                    <p className="text-sm text-red-600 mt-1">Custos operacionais e compras</p>
+                    <p className="text-3xl sm:text-4xl font-extrabold text-red-700 break-words">{formatMoney((resumo?.despesasOperacionaisMes || 0) + (resumo?.comprasEstoqueMes || 0))}</p>
+                    <div className="flex flex-col mt-2 text-xs text-red-800 space-y-1">
+                        <span className="flex items-center gap-1"><div className="w-2 h-2 bg-red-500 rounded-full"></div> Operacional: {formatMoney(resumo?.despesasOperacionaisMes || 0)}</span>
+                        <span className="flex items-center gap-1"><div className="w-2 h-2 bg-blue-500 rounded-full"></div> Compras Estoque: {formatMoney(resumo?.comprasEstoqueMes || 0)}</span>
+                    </div>
                 </div>
             </div>
         </div>
 
-        {/* CARD 3: SALDO / LUCRO */}
+        {/* CARD 3: LUCRO REAL */}
         <div className={`p-6 rounded-2xl shadow-lg border-2 relative overflow-hidden text-white transition-colors
-            ${saldo >= 0 
+            ${(resumo?.lucroReal || 0) >= 0 
                 ? 'bg-gradient-to-br from-slate-700 to-slate-900 border-slate-600' 
                 : 'bg-gradient-to-br from-orange-600 to-red-700 border-red-600'}`
         }>
             <div className="flex flex-col h-full justify-between relative z-10">
                 <div className="flex items-center gap-2 font-bold mb-2 opacity-90">
                     <div className="bg-white/20 p-2 rounded-full"><Wallet size={20}/></div>
-                    <span>Saldo do Período</span>
+                    <span>Lucro Real (Caixa)</span>
                 </div>
                 <div>
-                     {/* Alterado para usar formatMoney */}
-                    <p className="text-5xl font-extrabold tracking-tight">{formatMoney(saldo)}</p>
+                    <p className="text-4xl sm:text-5xl font-extrabold tracking-tight break-words leading-tight">{formatMoney(resumo?.lucroReal || 0)}</p>
                     <p className="text-sm opacity-80 mt-2">
-                        {saldo >= 0 ? 'Lucro Operacional 🎉' : 'Atenção: Prejuízo no período ⚠️'}
+                        {(resumo?.lucroReal || 0) >= 0 ? 'Resultado positivo 🎉' : 'Atenção: Prejuízo no período ⚠️'}
                     </p>
                 </div>
             </div>
@@ -159,16 +146,26 @@ export function Home() {
 
       {/* --- ALERTAS OPERACIONAIS --- */}
       <h3 className="text-lg font-bold text-gray-700 mt-8 mb-4">Painel de Alertas (Hoje)</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           
           {/* OS ABERTAS */}
           <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-500 flex items-center justify-between">
               <div>
                   <p className="text-gray-500 font-medium">Ordens de Serviço Abertas</p>
-                  <p className="text-3xl font-bold text-slate-800">{osAbertas}</p>
+                  <p className="text-3xl font-bold text-slate-800">{resumo?.osAbertas || 0}</p>
               </div>
               <div className="bg-blue-100 p-3 rounded-full text-blue-600">
                   <Wrench size={32} />
+              </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-cyan-500 flex items-center justify-between">
+              <div>
+                  <p className="text-gray-500 font-medium">OS Atrasadas (+7 dias)</p>
+                  <p className="text-3xl font-bold text-cyan-700">{resumo?.osAbertasAtrasadas || 0}</p>
+              </div>
+              <div className="bg-cyan-100 p-3 rounded-full text-cyan-600">
+                  <Clock size={32} />
               </div>
           </div>
 
@@ -176,11 +173,21 @@ export function Home() {
           <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-orange-500 flex items-center justify-between">
               <div>
                   <p className="text-gray-500 font-medium">A Receber Hoje ({new Date().toLocaleDateString('pt-BR')})</p>
-                   {/* Alterado para usar formatMoney */}
-                  <p className="text-3xl font-bold text-orange-600">{formatMoney(aReceberHoje)}</p>
+                  <p className="text-3xl font-bold text-orange-600">{formatMoney(resumo?.aReceberHoje || 0)}</p>
               </div>
               <div className="bg-orange-100 p-3 rounded-full text-orange-600">
                   <AlertCircle size={32} />
+              </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-red-600 flex items-center justify-between">
+              <div>
+                  <p className="text-gray-500 font-medium">A Receber Vencido</p>
+                  <p className="text-3xl font-bold text-red-600">{formatMoney(resumo?.aReceberVencido || 0)}</p>
+                  <p className="text-xs text-gray-500 mt-1">Próximos 7 dias: {formatMoney(resumo?.aVencerProximos7Dias || 0)}</p>
+              </div>
+              <div className="bg-red-100 p-3 rounded-full text-red-600">
+                  <AlertTriangle size={32} />
               </div>
           </div>
       </div>

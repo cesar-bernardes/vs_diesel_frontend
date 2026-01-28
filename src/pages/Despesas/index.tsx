@@ -33,18 +33,15 @@ export function Despesas() {
     observacoes: ''
   });
 
+  function carregarDespesas() {
+    api.get('/despesas')
+      .then((response) => setDespesas(response.data))
+      .catch((error: unknown) => console.error('Erro ao buscar despesas', error));
+  }
+
   useEffect(() => {
     carregarDespesas();
   }, []);
-
-  async function carregarDespesas() {
-    try {
-      const response = await api.get('/despesas');
-      setDespesas(response.data);
-    } catch (error) {
-      console.error("Erro ao buscar despesas", error);
-    }
-  }
 
   async function handleSalvar(e: React.FormEvent) {
     e.preventDefault();
