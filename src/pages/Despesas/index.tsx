@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../services/api';
-import { formatMoney } from '../../utils/format'; // <--- Importação
-import { PlusCircle, Calendar, BarChart3 } from 'lucide-react';
+import { formatMoney } from '../../utils/format';
+import { PlusCircle, Calendar, BarChart3, Trash2 } from 'lucide-react'; // <--- Adicionado Trash2
 
 interface Despesa {
   id: number;
@@ -18,11 +18,9 @@ export function Despesas() {
   const [despesas, setDespesas] = useState<Despesa[]>([]);
   const [modalAberto, setModalAberto] = useState(false);
   
-  // FILTROS
   const [filtroDepto, setFiltroDepto] = useState('Todos');
-  const [filtroData, setFiltroData] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
+  const [filtroData, setFiltroData] = useState(new Date().toISOString().slice(0, 7));
 
-  // ESTADO DO FORMULÁRIO
   const [novaDespesa, setNovaDespesa] = useState({
     dataDespesa: new Date().toISOString().split('T')[0],
     numeroNf: '',
@@ -61,11 +59,21 @@ export function Despesas() {
         }); 
     } catch (error) {
         alert('Erro ao salvar despesa.');
-        console.error(error);
     }
   }
 
-  // --- LÓGICA DINÂMICA ---
+  // NOVA FUNÇÃO DE EXCLUSÃO
+  async function handleExcluir(id: number) {
+      if (!confirm('Tem certeza que deseja excluir esta despesa?')) return;
+      
+      try {
+          await api.delete(`/despesas/${id}`);
+          alert('Despesa excluída.');
+          carregarDespesas();
+      } catch (error) {
+          alert('Erro ao excluir despesa.');
+      }
+  }
 
   const departamentosExistentes = Array.from(new Set(despesas.map(d => d.departamento))).filter(Boolean).sort();
 
@@ -87,7 +95,6 @@ export function Despesas() {
 
   return (
     <div className="space-y-6">
-      {/* CABEÇALHO */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
         <h2 className="text-3xl font-bold text-slate-800">Controle de Despesas</h2>
         <button 
@@ -99,9 +106,7 @@ export function Despesas() {
         </button>
       </div>
 
-      {/* DASHBOARD */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* RESUMO */}
         <div className="bg-white p-6 rounded-lg shadow border-l-4 border-red-500 space-y-6">
             <div>
                 <label className="text-sm font-medium text-gray-500 flex items-center gap-2 mb-2">
@@ -121,7 +126,6 @@ export function Despesas() {
             </div>
         </div>
 
-        {/* GRÁFICO COM SCROLL */}
         <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow flex flex-col">
             <h3 className="text-lg font-bold mb-6 text-gray-700 flex items-center gap-2">
                 <BarChart3 size={20} /> Gastos por Departamento
@@ -159,7 +163,6 @@ export function Despesas() {
         </div>
       </div>
 
-      {/* FILTROS BOTÕES */}
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
         <button
             onClick={() => setFiltroDepto('Todos')}
@@ -169,7 +172,6 @@ export function Despesas() {
         >
             Todos
         </button>
-        
         {departamentosExistentes.map(depto => (
             <button
                 key={depto}
@@ -183,7 +185,6 @@ export function Despesas() {
         ))}
       </div>
 
-      {/* TABELA */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="overflow-x-auto">
             <table className="w-full text-left min-w-[600px]">
@@ -195,11 +196,12 @@ export function Despesas() {
                 <th className="p-4">Depto</th>
                 <th className="p-4">Valor</th>
                 <th className="p-4">Obs</th>
+                <th className="p-4 text-center">Ações</th> {/* Nova Coluna */}
                 </tr>
             </thead>
             <tbody className="divide-y text-sm">
                 {despesasFiltradas.length === 0 ? (
-                    <tr><td colSpan={6} className="p-8 text-center text-gray-500">Nenhum registro encontrado para este filtro.</td></tr>
+                    <tr><td colSpan={7} className="p-8 text-center text-gray-500">Nenhum registro encontrado para este filtro.</td></tr>
                 ) : despesasFiltradas.map((d) => (
                 <tr key={d.id} className="hover:bg-gray-50">
                     <td className="p-4 whitespace-nowrap">{new Date(d.data_despesa).toLocaleDateString('pt-BR')}</td>
@@ -208,6 +210,15 @@ export function Despesas() {
                     <td className="p-4"><span className="bg-gray-100 px-2 py-1 rounded text-xs">{d.departamento}</span></td>
                     <td className="p-4 font-bold text-red-600 whitespace-nowrap">{formatMoney(d.valor)}</td>
                     <td className="p-4 text-gray-400 text-xs truncate max-w-[150px]">{d.observacoes}</td>
+                    <td className="p-4 text-center">
+                        <button 
+                            onClick={() => handleExcluir(d.id)}
+                            className="text-gray-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-full transition-all"
+                            title="Excluir Despesa"
+                        >
+                            <Trash2 size={18} />
+                        </button>
+                    </td>
                 </tr>
                 ))}
             </tbody>
@@ -215,10 +226,9 @@ export function Despesas() {
         </div>
       </div>
 
-      {/* MODAL */}
       {modalAberto && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl p-6">
+            <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl p-6 relative max-h-[90vh] overflow-y-auto">
                 <h3 className="text-xl font-bold text-gray-800 mb-6 border-b pb-4">Lançar Nova Despesa</h3>
                 <form onSubmit={handleSalvar} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
