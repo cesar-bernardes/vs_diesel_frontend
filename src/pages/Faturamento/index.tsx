@@ -29,6 +29,7 @@ export function Faturamento() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   
   const [filtroData, setFiltroData] = useState(new Date().toISOString().slice(0, 7));
+  const [aba, setAba] = useState<'ABERTOS' | 'HISTORICO'>('ABERTOS');
   
   const [modalLancamento, setModalLancamento] = useState(false);
   const [modalCliente, setModalCliente] = useState(false);
@@ -163,6 +164,9 @@ export function Faturamento() {
   hoje.setHours(0, 0, 0, 0);
 
   const itensDoMes = faturamentos.filter(f => f.data_vencimento.startsWith(filtroData));
+  const itensAbertosMes = itensDoMes.filter(f => f.status !== 'PAGO');
+  const itensPagosMes = itensDoMes.filter(f => f.status === 'PAGO');
+  const itensVisiveis = aba === 'ABERTOS' ? itensAbertosMes : itensPagosMes;
 
   const totalPrevistoMes = itensDoMes.reduce((acc, f) => acc + Number(f.valor_parcela), 0);
   
@@ -240,15 +244,45 @@ export function Faturamento() {
       {/* TABELA FILTRADA */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="p-4 border-b bg-gray-50 font-bold text-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <span>Boletos de {filtroData}</span>
-            <span className="text-sm font-normal text-gray-500">{itensDoMes.length} lançamentos</span>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <span>Boletos de {filtroData}</span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAba('ABERTOS')}
+                  className={`px-3 py-1 rounded-full text-xs font-bold border transition-colors ${
+                    aba === 'ABERTOS'
+                      ? 'bg-slate-800 text-white border-slate-800'
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                  }`}
+                  title="Ver boletos em aberto"
+                >
+                  Em aberto ({itensAbertosMes.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAba('HISTORICO')}
+                  className={`px-3 py-1 rounded-full text-xs font-bold border transition-colors ${
+                    aba === 'HISTORICO'
+                      ? 'bg-slate-800 text-white border-slate-800'
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                  }`}
+                  title="Ver histórico de pagamentos"
+                >
+                  Histórico ({itensPagosMes.length})
+                </button>
+              </div>
+            </div>
+            <span className="text-sm font-normal text-gray-500">{itensVisiveis.length} lançamentos</span>
         </div>
 
         {/* LISTAGEM MOBILE (CARDS) */}
         <div className="md:hidden divide-y">
-          {itensDoMes.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">Nenhum boleto para este mês.</div>
-          ) : itensDoMes.map((f) => {
+          {itensVisiveis.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+              {aba === 'ABERTOS' ? 'Nenhum boleto em aberto para este mês.' : 'Nenhum boleto pago para este mês.'}
+            </div>
+          ) : itensVisiveis.map((f) => {
             const isPago = f.status === 'PAGO';
             const dataVencimento = new Date(f.data_vencimento);
             dataVencimento.setHours(0, 0, 0, 0);
@@ -322,9 +356,13 @@ export function Faturamento() {
               </tr>
             </thead>
             <tbody className="divide-y text-sm">
-              {itensDoMes.length === 0 ? (
-                <tr><td colSpan={7} className="p-8 text-center text-gray-500">Nenhum boleto para este mês.</td></tr>
-              ) : itensDoMes.map((f) => {
+              {itensVisiveis.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="p-8 text-center text-gray-500">
+                    {aba === 'ABERTOS' ? 'Nenhum boleto em aberto para este mês.' : 'Nenhum boleto pago para este mês.'}
+                  </td>
+                </tr>
+              ) : itensVisiveis.map((f) => {
                 const isPago = f.status === 'PAGO';
                 const dataVencimento = new Date(f.data_vencimento);
                 dataVencimento.setHours(0,0,0,0);
