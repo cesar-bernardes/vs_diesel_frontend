@@ -22,6 +22,12 @@ interface DashboardResumo {
   comprasEstoqueMes: number;
   lucroReal: number;
   osAbertas: number;
+  osAbertasTotalValor: number;
+  osFechadasTotalValor: number;
+  osAbertasMesQtd: number;
+  osFechadasMesQtd: number;
+  osAbertasMesValor: number;
+  osFechadasMesValor: number;
   aReceberHoje: number;
   aReceberVencido: number;
   aVencerProximos7Dias: number;
@@ -145,6 +151,49 @@ export function Home() {
       </div>
 
       {/* --- ALERTAS OPERACIONAIS --- */}
+      <h3 className="text-lg font-bold text-gray-700 mt-8 mb-4">Ordens de Serviço</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-500 flex items-center justify-between">
+              <div>
+                  <p className="text-gray-500 font-medium">Valor Total OS Abertas</p>
+                  <p className="text-3xl font-bold text-slate-800">{formatMoney(resumo?.osAbertasTotalValor || 0)}</p>
+              </div>
+              <div className="bg-blue-100 p-3 rounded-full text-blue-600">
+                  <Wrench size={32} />
+              </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-500 flex items-center justify-between">
+              <div>
+                  <p className="text-gray-500 font-medium">Valor Total OS Fechadas</p>
+                  <p className="text-3xl font-bold text-green-700">{formatMoney(resumo?.osFechadasTotalValor || 0)}</p>
+              </div>
+              <div className="bg-green-100 p-3 rounded-full text-green-600">
+                  <CheckCircle2 size={32} />
+              </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-indigo-500 flex items-center justify-between">
+              <div>
+                  <p className="text-gray-500 font-medium">Valor OS Abertas (Mês)</p>
+                  <p className="text-3xl font-bold text-indigo-700">{formatMoney(resumo?.osAbertasMesValor || 0)}</p>
+              </div>
+              <div className="bg-indigo-100 p-3 rounded-full text-indigo-600">
+                  <Wallet size={32} />
+              </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-emerald-500 flex items-center justify-between">
+              <div>
+                  <p className="text-gray-500 font-medium">Valor OS Fechadas (Mês)</p>
+                  <p className="text-3xl font-bold text-emerald-700">{formatMoney(resumo?.osFechadasMesValor || 0)}</p>
+              </div>
+              <div className="bg-emerald-100 p-3 rounded-full text-emerald-600">
+                  <TrendingUp size={32} />
+              </div>
+          </div>
+      </div>
+
       <h3 className="text-lg font-bold text-gray-700 mt-8 mb-4">Painel de Alertas (Hoje)</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           

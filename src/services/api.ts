@@ -2,8 +2,8 @@ import axios from 'axios';
 
 export const api = axios.create({
   // Se estiver rodando local use localhost, se subiu na Vercel use a URL da Vercel
-   //baseURL: 'http://localhost:8080/api', 
-  baseURL: 'https://vs-diesel-backend.vercel.app/api',
+   baseURL: 'http://localhost:8080/api', 
+  //baseURL: 'https://vs-diesel-backend.vercel.app/api',
 });
 
 // Interceptor para injetar o token

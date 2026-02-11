@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../services/api';
 import { formatMoney } from '../../utils/format';
 import { PlusCircle, Calendar, BarChart3, Trash2 } from 'lucide-react'; // <--- Adicionado Trash2
@@ -57,7 +57,7 @@ export function Despesas() {
             observacoes: '',
             departamento: '' 
         }); 
-    } catch (error) {
+    } catch {
         alert('Erro ao salvar despesa.');
     }
   }
@@ -70,12 +70,26 @@ export function Despesas() {
           await api.delete(`/despesas/${id}`);
           alert('Despesa excluída.');
           carregarDespesas();
-      } catch (error) {
+      } catch {
           alert('Erro ao excluir despesa.');
       }
   }
 
   const departamentosExistentes = Array.from(new Set(despesas.map(d => d.departamento))).filter(Boolean).sort();
+
+  const despesasNoMes = useMemo(() => {
+    return despesas.filter(d => d.data_despesa.startsWith(filtroData));
+  }, [despesas, filtroData]);
+
+  const departamentosNoMes = useMemo(() => {
+    return Array.from(new Set(despesasNoMes.map(d => d.departamento))).filter(Boolean).sort();
+  }, [despesasNoMes]);
+
+  useEffect(() => {
+    if (filtroDepto !== 'Todos' && !departamentosNoMes.includes(filtroDepto)) {
+      Promise.resolve().then(() => setFiltroDepto('Todos'));
+    }
+  }, [filtroDepto, departamentosNoMes]);
 
   const despesasFiltradas = despesas.filter(d => {
     const matchDepto = filtroDepto === 'Todos' || d.departamento === filtroDepto;
@@ -91,7 +105,7 @@ export function Despesas() {
   }, {} as Record<string, number>);
 
   const maiorGasto = Math.max(...Object.values(gastosPorDepto), 1);
-  const deptosGrafico = filtroDepto === 'Todos' ? departamentosExistentes : [filtroDepto];
+  const deptosGrafico = filtroDepto === 'Todos' ? departamentosNoMes : [filtroDepto];
 
   return (
     <div className="space-y-6">
@@ -138,9 +152,16 @@ export function Despesas() {
                     ) : deptosGrafico.map((depto) => {
                         const valor = gastosPorDepto[depto] || 0;
                         const altura = (valor / maiorGasto) * 100;
+                        const ativo = filtroDepto === depto;
                         
                         return (
-                            <div key={depto} className="flex flex-col items-center justify-end h-full group w-16 flex-shrink-0 relative">
+                            <button
+                                key={depto}
+                                type="button"
+                                onClick={() => setFiltroDepto(prev => (prev === depto ? 'Todos' : depto))}
+                                className={`flex flex-col items-center justify-end h-full group w-16 flex-shrink-0 relative outline-none ${ativo ? 'ring-2 ring-slate-800/20 rounded' : ''}`}
+                                title={ativo ? `Remover filtro: ${depto}` : `Filtrar por: ${depto}`}
+                            >
                                 <div className="mb-1 text-xs font-bold text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity absolute -top-6">
                                     {formatMoney(valor)}
                                 </div>
@@ -155,7 +176,7 @@ export function Despesas() {
                                 <span className="text-[10px] md:text-xs font-medium text-gray-500 mt-2 text-center truncate w-full" title={depto}>
                                     {depto}
                                 </span>
-                            </div>
+                            </button>
                         );
                     })}
                 </div>
@@ -172,7 +193,7 @@ export function Despesas() {
         >
             Todos
         </button>
-        {departamentosExistentes.map(depto => (
+        {departamentosNoMes.map(depto => (
             <button
                 key={depto}
                 onClick={() => setFiltroDepto(depto)}

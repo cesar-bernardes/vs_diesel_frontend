@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../services/api';
 import { formatMoney } from '../../utils/format';
 import type { Produto } from '../../types';
@@ -6,6 +6,36 @@ import {
     PlusCircle, Search, X, Save, AlertTriangle, 
     ArrowRight, CheckCircle2, Trash2, Copy, TrendingUp, Package, Calendar 
 } from 'lucide-react';
+
+type EstoqueDashboardData = {
+  mes: string;
+  mesAnterior: string;
+  comprado: {
+    atual: number;
+    anterior: number;
+    variacaoAbs: number;
+    variacaoPct: number | null;
+  };
+  saiu: {
+    atual: number;
+    anterior: number;
+    variacaoAbs: number;
+    variacaoPct: number | null;
+    porTipoAtual: Record<string, number>;
+  };
+  saldoPeriodo: {
+    atual: number;
+    anterior: number;
+    variacaoAbs: number;
+    variacaoPct: number | null;
+  };
+  estoque: {
+    atual: number;
+    inicioMes: number;
+    variacaoAbs: number;
+    variacaoPct: number | null;
+  };
+};
 
 export function Estoque() {
   // 1. SEGURANÇA: Identifica o cargo
@@ -18,7 +48,7 @@ export function Estoque() {
   
   // Filtro de Mês (Padrão: Mês Atual)
   const [filtroMes, setFiltroMes] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
-  const [totalEntradasMes, setTotalEntradasMes] = useState(0);
+  const [dashboard, setDashboard] = useState<EstoqueDashboardData | null>(null);
 
   const [termoBusca, setTermoBusca] = useState('');
 
@@ -49,21 +79,21 @@ export function Estoque() {
 
     const requests = [api.get('/produtos')];
     if (!isFuncionario) {
-      requests.push(api.get(`/estoque/resumo?mes=${filtroMes}`));
+      requests.push(api.get(`/estoque/dashboard?mes=${filtroMes}`));
     }
 
     Promise.all(requests)
-      .then(([resProdutos, resResumo]) => {
+      .then(([resProdutos, resDashboard]) => {
         setProdutos(resProdutos.data);
-        if (resResumo) {
-          setTotalEntradasMes(resResumo.data.totalEntradasMes);
+        if (resDashboard) {
+          setDashboard(resDashboard.data);
         }
       })
       .catch((error: unknown) => console.error('Erro ao buscar dados', error))
       .finally(() => setLoading(false));
   }, [filtroMes, isFuncionario]);
 
-  useMemo(() => {
+  useEffect(() => {
     Promise.resolve().then(() => carregarDados());
   }, [carregarDados]);
 
@@ -231,7 +261,29 @@ export function Estoque() {
     setNovoProduto({ codigo: '', descricao: '', marca: '', qtde: 0, precoCusto: 0, unidade: 'UN' });
   }
 
-  const valorTotalEstoque = produtos.reduce((acc, p) => acc + (p.precoCusto * p.qtdeAtual), 0);
+  function formatPercent(value: number | null | undefined) {
+    if (value === null || value === undefined || !Number.isFinite(value)) return '—';
+    return new Intl.NumberFormat('pt-BR', { style: 'percent', maximumFractionDigits: 1 }).format(value);
+  }
+
+  function renderVariacao(variacaoAbs: number, variacaoPct: number | null, labelBase: string) {
+    const abs = Number(variacaoAbs || 0);
+    const pct = variacaoPct;
+    const positivo = abs > 0;
+    const negativo = abs < 0;
+    const cor = positivo ? 'text-green-700 bg-green-50 border-green-200' : negativo ? 'text-red-700 bg-red-50 border-red-200' : 'text-slate-700 bg-slate-50 border-slate-200';
+    const sinal = positivo ? '+' : '';
+
+    return (
+      <div className={`inline-flex items-center gap-2 text-xs font-bold px-2 py-1 rounded border ${cor}`}>
+        <span>{formatPercent(pct)}</span>
+        <span className="font-normal text-[11px] text-slate-500">({sinal}{formatMoney(abs)})</span>
+        <span className="font-normal text-[11px] text-slate-500">vs {labelBase}</span>
+      </div>
+    );
+  }
+
+  const valorTotalEstoque = dashboard?.estoque?.atual ?? produtos.reduce((acc, p) => acc + (p.precoCusto * p.qtdeAtual), 0);
 
   return (
     <div className="space-y-6 relative">
@@ -263,27 +315,77 @@ export function Estoque() {
       {/* --- DASHBOARD DE ESTOQUE (PROTEGIDO) --- */}
       {/* Se for funcionário, vê apenas o total de itens, sem valores monetários */}
       {!isFuncionario ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* CARD 1: VALOR TOTAL ATUAL */}
-            <div className="bg-white p-6 rounded-lg shadow border-l-4 border-green-500">
-              <p className="text-gray-500 font-medium">Valor Atual em Estoque</p>
-              <p className="text-3xl font-bold text-slate-800 mt-1">{formatMoney(valorTotalEstoque)}</p>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-blue-50 p-6 rounded-lg shadow border-l-4 border-blue-500 relative overflow-hidden">
+                  <div className="absolute right-2 top-2 opacity-10 text-blue-600"><TrendingUp size={60} /></div>
+                  <p className="text-blue-700 font-bold uppercase text-xs tracking-wider">Comprado em {filtroMes}</p>
+                  <p className="text-3xl font-extrabold text-blue-800 mt-1">{formatMoney(dashboard?.comprado?.atual ?? 0)}</p>
+                  <div className="mt-3">
+                    {dashboard ? renderVariacao(dashboard.comprado.variacaoAbs, dashboard.comprado.variacaoPct, dashboard.mesAnterior) : null}
+                  </div>
+              </div>
+
+              <div className="bg-amber-50 p-6 rounded-lg shadow border-l-4 border-amber-500 relative overflow-hidden">
+                  <p className="text-amber-700 font-bold uppercase text-xs tracking-wider">Saiu do estoque em {filtroMes}</p>
+                  <p className="text-3xl font-extrabold text-amber-800 mt-1">{formatMoney(dashboard?.saiu?.atual ?? 0)}</p>
+                  <div className="mt-3">
+                    {dashboard ? renderVariacao(dashboard.saiu.variacaoAbs, dashboard.saiu.variacaoPct, dashboard.mesAnterior) : null}
+                  </div>
+                  <p className="text-xs text-amber-700 mt-2">Por tipo de saída logo abaixo</p>
+              </div>
+
+              <div className="bg-white p-6 rounded-lg shadow border-l-4 border-green-500">
+                <p className="text-gray-500 font-medium">Valor Atual em Estoque</p>
+                <p className="text-3xl font-bold text-slate-800 mt-1">{formatMoney(valorTotalEstoque)}</p>
+                {dashboard ? (
+                  <div className="mt-3">
+                    <div className="inline-flex items-center gap-2 text-xs font-bold px-2 py-1 rounded border text-slate-700 bg-slate-50 border-slate-200">
+                      <span>{formatPercent(dashboard.estoque.variacaoPct)}</span>
+                      <span className="font-normal text-[11px] text-slate-500">({dashboard.estoque.variacaoAbs > 0 ? '+' : ''}{formatMoney(dashboard.estoque.variacaoAbs)})</span>
+                      <span className="font-normal text-[11px] text-slate-500">desde 01/{dashboard.mes.slice(5, 7)}</span>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="bg-white p-6 rounded-lg shadow border-l-4 border-indigo-500 relative">
+                <div className="absolute right-4 top-4 opacity-10 text-indigo-600"><Package size={40} /></div>
+                <p className="text-indigo-700 font-bold uppercase text-xs tracking-wider">Saldo do período</p>
+                <p className="text-3xl font-extrabold text-indigo-800 mt-1">{formatMoney(dashboard?.saldoPeriodo?.atual ?? 0)}</p>
+                <div className="mt-3">
+                  {dashboard ? renderVariacao(dashboard.saldoPeriodo.variacaoAbs, dashboard.saldoPeriodo.variacaoPct, dashboard.mesAnterior) : null}
+                </div>
+                <p className="text-xs text-gray-400 mt-2">Entrou − Saiu</p>
+              </div>
             </div>
 
-            {/* CARD 2: TOTAL ENTRADAS DO MÊS */}
-            <div className="bg-blue-50 p-6 rounded-lg shadow border-l-4 border-blue-500 relative overflow-hidden">
-                <div className="absolute right-2 top-2 opacity-10 text-blue-600"><TrendingUp size={60} /></div>
-                <p className="text-blue-700 font-bold uppercase text-xs tracking-wider">Entradas em {filtroMes}</p>
-                <p className="text-3xl font-extrabold text-blue-800 mt-1">{formatMoney(totalEntradasMes)}</p>
-                <p className="text-xs text-blue-600 mt-1">Compras registradas no período</p>
-            </div>
-
-            {/* CARD 3: TOTAL DE ITENS */}
-            <div className="bg-white p-6 rounded-lg shadow border-l-4 border-indigo-500 relative">
-              <div className="absolute right-4 top-4 opacity-10 text-indigo-600"><Package size={40} /></div>
-              <p className="text-gray-500 font-medium">Total de Itens</p>
-              <p className="text-3xl font-bold text-indigo-700 mt-1">{produtos.length}</p>
-              <p className="text-xs text-gray-400 mt-1">Produtos cadastrados</p>
+            <div className="bg-white rounded-lg shadow border">
+              <div className="p-4 border-b bg-gray-50 flex items-center justify-between">
+                <div className="font-bold text-slate-700">Saídas por tipo</div>
+                <div className="text-xs text-slate-500 font-bold">Período: {filtroMes}</div>
+              </div>
+              <div className="p-4">
+                {dashboard && Object.keys(dashboard.saiu.porTipoAtual || {}).length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {Object.entries(dashboard.saiu.porTipoAtual)
+                      .filter(([, valor]) => Number(valor) !== 0)
+                      .sort((a, b) => Number(b[1]) - Number(a[1]))
+                      .map(([tipo, valor]) => {
+                        const tipoUpper = String(tipo || '').toUpperCase();
+                        const label = tipoUpper === 'SAIDA_OS' ? 'OS (Peças)' : tipoUpper.replace(/^SAIDA_/, '').replace(/_/g, ' ');
+                        return (
+                          <div key={tipoUpper} className="border rounded-lg p-4 bg-white">
+                            <div className="text-xs font-bold text-slate-500 uppercase">{label || tipoUpper}</div>
+                            <div className="text-2xl font-extrabold text-slate-800 mt-1">{formatMoney(valor)}</div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                ) : (
+                  <div className="text-sm text-slate-500">Nenhuma saída registrada no período.</div>
+                )}
+              </div>
             </div>
           </div>
       ) : (

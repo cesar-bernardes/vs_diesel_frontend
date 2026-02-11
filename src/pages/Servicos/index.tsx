@@ -174,6 +174,30 @@ export function Servicos() {
     } catch { alert('Erro ao finalizar'); }
   }
 
+  async function handleExcluirOS() {
+    if (isFuncionario) return;
+    if (!osSelecionada) return;
+    const osId = osSelecionada.id;
+
+    if (!confirm(`Deseja excluir a OS #${osId}? Essa ação não pode ser desfeita.`)) return;
+    const confirmacaoFinal = prompt('Confirmação final: digite EXCLUIR para apagar esta OS.');
+    if (!confirmacaoFinal || confirmacaoFinal.trim().toUpperCase() !== 'EXCLUIR') {
+      alert('Exclusão cancelada.');
+      return;
+    }
+
+    try {
+      await api.delete(`/os/${osId}`);
+      alert('OS excluída com sucesso!');
+      carregarOS();
+      setOsSelecionada(null);
+      setItensOS([]);
+      setMobileView('lista');
+    } catch {
+      alert('Erro ao excluir OS.');
+    }
+  }
+
   // --- IMPRESSÃO ---
   function handleImprimir() {
     if (isFuncionario) return;
@@ -262,6 +286,15 @@ export function Servicos() {
                                           Finalizar OS
                                       </button>
                                   )}
+
+                                  <button
+                                      type="button"
+                                      onClick={handleExcluirOS}
+                                      className="border border-gray-200 text-gray-500 hover:text-red-700 px-4 py-2 rounded text-sm hover:bg-red-50 flex items-center justify-center gap-2 w-full sm:w-auto"
+                                      title="Excluir OS"
+                                  >
+                                      <Trash2 size={16} /> Excluir
+                                  </button>
                                </div>
                           </div>
                         )}
