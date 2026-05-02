@@ -109,25 +109,23 @@ export function Home() {
             </div>
         </div>
 
-        {/* CARD 2: SAÍDAS TOTAIS (DESPESAS + ESTOQUE) */}
-        <div className="bg-gradient-to-br from-red-50 to-red-100 p-6 rounded-2xl shadow-sm border border-red-200 relative overflow-hidden group">
-            <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                <TrendingDown size={100} className="text-red-600" />
-            </div>
-            <div className="flex flex-col h-full justify-between relative z-10">
-                <div className="flex items-center gap-2 text-red-700 font-bold mb-2">
-                    <div className="bg-red-200 p-2 rounded-full"><TrendingDown size={20}/></div>
-                    <span>Total de Saídas</span>
-                </div>
-                <div>
-                    <p className="text-3xl sm:text-4xl font-extrabold text-red-700 break-words">{formatMoney((resumo?.despesasOperacionaisMes || 0) + (resumo?.comprasEstoqueMes || 0))}</p>
-                    <div className="flex flex-col mt-2 text-xs text-red-800 space-y-1">
-                        <span className="flex items-center gap-1"><div className="w-2 h-2 bg-red-500 rounded-full"></div> Operacional: {formatMoney(resumo?.despesasOperacionaisMes || 0)}</span>
-                        <span className="flex items-center gap-1"><div className="w-2 h-2 bg-blue-500 rounded-full"></div> Compras Estoque: {formatMoney(resumo?.comprasEstoqueMes || 0)}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+        {/* CARD 2: SAÍDAS TOTAIS (APENAS DESPESAS OPERACIONAIS) */}
+        <div className="bg-gradient-to-br from-red-50 to-red-100 p-6 rounded-2xl shadow-sm border border-red-200 relative overflow-hidden group">
+            <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <TrendingDown size={100} className="text-red-600" />
+            </div>
+            <div className="flex flex-col h-full justify-between relative z-10">
+                <div className="flex items-center gap-2 text-red-700 font-bold mb-2">
+                    <div className="bg-red-200 p-2 rounded-full"><TrendingDown size={20}/></div>
+                    <span>Total de Saídas</span>
+                </div>
+                <div>
+                    <p className="text-3xl sm:text-4xl font-extrabold text-red-700 break-words">
+                        {formatMoney(resumo?.despesasOperacionaisMes || 0)}
+                    </p>
+                </div>
+            </div>
+        </div>
 
         {/* CARD 3: LUCRO REAL */}
         <div className={`p-6 rounded-2xl shadow-lg border-2 relative overflow-hidden text-white transition-colors
